@@ -7,12 +7,15 @@ from matplotlib.patches import Ellipse
 import matplotlib as mpl
 from sklearn.mixture import GaussianMixture as GMM
 from sklearn.decomposition import PCA
+from sklearn.svm import LinearSVC
 
 # df is the data file that is being manipulated
 
-#  Following function is from the scikit learn site on GaussianMixture model
+# Following function is from the scikit learn site on GaussianMixture model
+
+
 def plot_results(X, Y_, means, covariances, title):  # add index between covariance and title if you want subplots.
-    #splot = plt.subplot(2, 1, 1 + index)
+    # splot = plt.subplot(2, 1, 1 + index)
     for i, (mean, covar, color) in enumerate(zip(
             means, covariances, color_iter)):
         v, w = linalg.eigh(covar)
@@ -29,9 +32,9 @@ def plot_results(X, Y_, means, covariances, title):  # add index between covaria
         angle = np.arctan(u[1] / u[0])
         angle = 180. * angle / np.pi  # convert to degrees
         ell = mpl.patches.Ellipse(mean, v[0], v[1], 180. + angle, color=color)
-        #ell.set_clip_box(splot.bbox)
+        # ell.set_clip_box(splot.bbox)
         ell.set_alpha(0.5)
-        #splot.add_artist(ell)
+        # splot.add_artist(ell)
 
     plt.xlim(-9., 5.)
     plt.ylim(-3., 6.)
@@ -40,7 +43,7 @@ def plot_results(X, Y_, means, covariances, title):  # add index between covaria
     plt.title(title)
     plt.axis('on')
 
-##################### Pearson Correlation Coefficient Feature Selection Begins ######################
+# Pearson Correlation Coefficient Feature Selection Begins
 
 
 df = pd.read_excel('Matthew_Data.xlsx')  # Import the initial data sheet from excel
@@ -71,7 +74,8 @@ for x, val in so.iteritems():  # Iterates through correlation pairs > 0.9
     else:
         drop_columns.add(x[1])
 
-df = df.drop(drop_columns,axis=1)
+df = df.drop(drop_columns, axis=1)
+X = df
 # Plots the new correlation matrix after feature selection has been performed
 plt.figure(2)
 plt.matshow(df.corr().abs(), fignum=2)
@@ -82,22 +86,19 @@ plt.ylabel("Features")
 plt.show()
 
 
-
-############################ PCA Block Begins ###########################
-
-
+# PCA Block Begins
 
 pca = PCA(n_components=6, whiten=False, svd_solver='full')
 pca.fit(df)       # fit the model with data
-transform = pd.DataFrame(pca.fit_transform(df)) # apply the dimensionality reduction on data
+transform = pd.DataFrame(pca.fit_transform(df))  # apply the dimensionality reduction on data
 
 components = pca.components_
 ##########################################################################
 
-#Work in Progress:
+# Work in Progress:
 slope = np.diff(pca.explained_variance_, n=1)
 slopeOfSlope = np.diff(pca.explained_variance_, n=2)
-cnt = 0;
+cnt = 0
 num_components = 1
 while cnt < (len(slope) - 1):
     if (abs(slopeOfSlope[cnt - 1]) - abs(slopeOfSlope[cnt])) <= 0.0001:
@@ -148,11 +149,22 @@ plt.ylabel("Decomposed Feature6")
 plt.show()
 
 
-
-############  The following code fits a GaussianMixture model on the cleaned data and graphs it. #####################
-GaussianMix=GMM(n_components=2,covariance_type='full',max_iter=800,init_params='random').fit(df)
+# The following code fits a GaussianMixture model on the cleaned data and graphs it.
+GaussianMix = GMM(n_components=2,covariance_type='full',max_iter=800,init_params='random').fit(df)
 color_iter = itertools.cycle(['navy', 'c'])
-plot_results(np.array(df), GaussianMix.predict(df),GaussianMix.means_,GaussianMix.covariances_,"Gaussian Mixture")
-plt.show()
+# plot_results(np.array(df), GaussianMix.predict(df), GaussianMix.means, GaussianMix.covariances_,"Gaussian Mixture")
+# plt.show()
 
 
+# Support Vector Machine Code
+y = GaussianMix.predict(df)
+clf = LinearSVC()
+clf.fit(X, y)
+
+Y = clf.predict(X)
+num = 0
+for index in range(0, len(Y)):
+    if Y[index] == y[index]:
+        num += 1
+
+print(num/len(Y) * 100)
