@@ -1,8 +1,5 @@
 # By Rakeen Rouf
 import pandas as pd
-import matplotlib.pyplot as plt
-import math
-import matplotlib.animation as animation
 from pymongo import MongoClient
 from io import StringIO
 

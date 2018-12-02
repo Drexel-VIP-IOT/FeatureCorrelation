@@ -16,7 +16,7 @@ class MongoDbCsvUpload:
     def data_loader(self):
         self.files.delete_one({"file_name": "plot_final.txt"})
         data = open('C:/Users/rakee/Downloads/fog_plot_data.txt', 'r').read()
-        doc = { "file_name": "plot_final.txt", "contents": data}
+        doc = {"file_name": "plot_final.txt", "contents": data}
         self.files.insert(doc)
         self.client.close()
 
