@@ -21,7 +21,7 @@ class MongoJsonUpload:
                         'FREQPP2', 'FREQPP3', 'FREQPP4', 'FRQ-C', 'P-FRQ']
         
     def data_loader(self):
-        reader = csv.DictReader(open(self.csv_file, 'r'))
+        reader = csv.DictReader(open(self.csv_file, 'r'), quoting=csv.QUOTE_NONNUMERIC)
         for line in reader:
             mongo_upload = {}            
             for field in self.headers:
