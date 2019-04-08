@@ -16,9 +16,9 @@ class MongoJsonUpload:
         self.acoustic_data = db.acoustic_data
 
         self.headers = ['SSSSSSSS.mmmuuun', 'cum_sum_ENER', 'DURATION',
-                         'ENER', 'DURATION', 'AMP', 'A-FRQ', 'RMS', 'ASL', 'PCNTS', 'THR',
-                         'R-FRQ', 'I-FRQ', 'SIG STRNGTH', 'ABS-ENERGY', 'FREQPP1',
-                         'FREQPP2', 'FREQPP3', 'FREQPP4', 'FRQ-C', 'P-FRQ']
+                        'ENER', 'DURATION', 'AMP', 'A-FRQ', 'RMS', 'ASL', 'PCNTS', 'THR',
+                        'R-FRQ', 'I-FRQ', 'SIG STRNGTH', 'ABS-ENERGY', 'FREQPP1',
+                        'FREQPP2', 'FREQPP3', 'FREQPP4', 'FRQ-C', 'P-FRQ']
         
     def data_loader(self):
         reader = csv.DictReader(open(self.csv_file, 'r'))
@@ -42,6 +42,7 @@ class MongoJsonUpload:
             stat = os.stat(self.csv_file)
             return stat.st_mtime
         
+
 if __name__ == '__main__':
     json_loader = MongoJsonUpload()
 

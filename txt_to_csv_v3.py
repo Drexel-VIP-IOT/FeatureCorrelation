@@ -60,19 +60,19 @@ class TxtToCsv:
             temp_data = pd.read_fwf(self.dest)
             temp_data.columns = self.data.columns
             
-        new_data =  self.data.iloc[line_number:]
+        new_data = self.data.iloc[line_number:]
         self.data = pd.concat([temp_data, new_data], join="inner")
-        #self.data = self.data.astype('float')
+        # self.data = self.data.astype('float')
         self.data['cum_sum_ENER'] = self.data['ENER'].cumsum() + cum_sum_ener
 
         txt_file = open("History.txt", "w")  # Lets update our history file for the next iter
         txt_file.write('History\n')
-        txt_file.write(str(len(self.data)))
+        txt_file.write(str(len(self.data['cum_sum_ENER'])))
         txt_file.write('\n')
         print(self.data['cum_sum_ENER'].iloc[-1])
-        b=self.data['cum_sum_ENER'].iloc[-1]
+        b = self.data['cum_sum_ENER'].iloc[-1]
         if np.isnan(self.data['cum_sum_ENER'].iloc[-1]):
-            b=0
+            b = 0
         txt_file.write(str(int(b)))
         txt_file.write('\n')
         txt_file.write(str(start_line - 1))
@@ -90,7 +90,6 @@ class TxtToCsv:
         plot_data.to_csv(self.dest)
         mongo_data.to_csv(self.mongo_dest)
 
-
     def modification_date(self):
 
         if platform.system() == 'Windows':
@@ -98,6 +97,7 @@ class TxtToCsv:
         else:
             stat = os.stat(self.data_file)
             return stat.st_mtime
+
 
 if __name__ == '__main__':
     # Lets write a txt file containing all running history
