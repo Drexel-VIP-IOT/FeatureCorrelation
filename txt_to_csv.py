@@ -22,6 +22,7 @@ class TxtToCsv:
             self.data = self.data.loc[self.data['ID'] == '1']
         except KeyError:
             self.data = pd.read_fwf(self.data_file, skiprows=8)
+            print(self.data.columns.values)
             # Lets just keep the data points which have id == 1
             self.data = self.data.loc[self.data['ID'] == '1']
 
@@ -43,7 +44,6 @@ class TxtToCsv:
         txt_file.close()
 
         plot_data = self.data[['SSSSSSSS.mmmuuun', 'cum_sum_ENER', 'DURATION', 'AMP']]
-        print(plot_data)
         plot_data.to_csv('C:/Users/rakee/Downloads/fog_plot_data.txt')
 
     def modification_date(self):
