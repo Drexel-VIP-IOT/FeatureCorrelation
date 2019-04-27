@@ -1,0 +1,108 @@
+# By Rakeen Rouf
+import pandas as pd
+import os
+import platform
+import time
+
+
+class TxtToCsv:
+    """
+    Converts ae txt files into csv. History.csv keeps track of incoming data. The CSV is updated based on modification
+    time
+    """
+
+    def __init__(self, data_file='/mnt/nfsserver/rasp/livedata0.TXT',
+                 destination='/mnt/nfsserver/rasp/fog_plot_data.txt', mongo_dest='/mnt/nfsserver/rasp/mongo_data.txt'):
+        
+        self.dest = destination
+        self.mongo_dest = mongo_dest
+        self.data = pd.DataFrame()
+        self.data_file = data_file
+        self.skip_rows = 0
+        self.iter = 0
+
+    def get_file_data(self):
+        try:
+            self.data = pd.read_fwf(self.data_file, skiprows=self.skip_rows)
+            
+            self.data = self.data.loc[self.data['ID'] == '1']
+        except KeyError:
+            self.data = pd.read_fwf(self.data_file)
+            for i in range(len(self.data)):
+                if self.data.iloc[:, 0][i] == 'ID     SSSSSSSS.mmmuuun':
+                    self.skip_rows = i + 1
+                    break
+            self.data = pd.read_fwf(self.data_file, skiprows=self.skip_rows)
+
+        # Lets just keep the data points which have id == 1
+        self.data['ID'], self.data['SSSSSSSS.mmmuuun'] = self.data['ID     SSSSSSSS.mmmuuun'].str.split('    ', 1).str
+        self.data = self.data.loc[self.data['ID'] == '1']
+        self.data['SSSSSSSS.mmmuuun'] = self.data['SSSSSSSS.mmmuuun'].str.strip()
+        print(self.data.columns)
+        exit()
+        self.data = self.data[['ENER', 'DURATION', 'AMP', 'A-FRQ', 'RMS', 'ASL', 'PCNTS', 'THR',
+                               'R-FRQ', 'I-FRQ', 'SIG STRNGTH', 'ABS-ENERGY', 'FREQPP1',
+                               'FREQPP2', 'FREQPP3', 'FREQPP4', 'FRQ-C', 'P-FRQ', 'ID', 'SSSSSSSS.mmmuuun', 'RISE',
+                               'COUN']]
+
+    def loaddata(self):
+        # Lets read in how many lines we had in the last iter
+        line_number = int(pd.read_fwf('History.txt')['History'][0])        
+        # Which line do I start at?
+        start_line = int(pd.read_fwf('History.txt')['History'][1])
+
+        self.get_file_data()
+        
+        if self.iter == 0:
+            temp_data = pd.DataFrame(columns=self.data.columns)
+            self.iter = 1
+        else:
+            temp_data = pd.read_csv(self.dest)
+            
+        new_data = self.data.iloc[line_number:]
+        self.data = pd.concat([temp_data, new_data], join="inner")
+        # self.data = self.data.astype('float')
+        
+        txt_file = open("History.txt", "w")  # Lets update our history file for the next iter
+        txt_file.write('History\n')
+        txt_file.write(str(len(self.data['DURATION'])))
+        txt_file.write('\n')
+        txt_file.write(str(start_line - 1))
+        txt_file.close()
+
+        plot_data = self.data[['SSSSSSSS.mmmuuun', 'DURATION', 'ENER', 'AMP', 'ABS-ENERGY', 'RISE', 'COUN']]
+
+        mongo_data = new_data[['SSSSSSSS.mmmuuun', 'DURATION', 'ENER', 'AMP', 'A-FRQ', 'RMS', 'ASL',
+                               'PCNTS', 'THR', 'R-FRQ', 'I-FRQ', 'SIG STRNGTH', 'ABS-ENERGY', 'FREQPP1',
+                               'FREQPP2', 'FREQPP3', 'FREQPP4', 'FRQ-C', 'P-FRQ', 'RISE', 'COUN']]
+        
+        plot_data.to_csv(self.dest)
+        mongo_data.to_csv(self.mongo_dest)
+
+    def modification_date(self):
+
+        if platform.system() == 'Windows':
+            return os.path.getmtime(self.data_file)
+        else:
+            stat = os.stat(self.data_file)
+            return stat.st_mtime
+
+
+if __name__ == '__main__':
+    # Lets write a txt file containing all running history
+    txt_file_writer = open("History.txt", "w")
+    txt_file_writer.write('History\n')
+    txt_file_writer.write(str(0))
+    txt_file_writer.write('\n')
+    txt_file_writer.write(str(0))
+    txt_file_writer.close()
+    txt_to_csv = TxtToCsv()
+
+    mod_time = 0
+    while True:
+        cur_mod_time = txt_to_csv.modification_date()
+        if mod_time < cur_mod_time:
+            time.sleep(0.01)
+            txt_to_csv.loaddata()
+            print('works')
+            mod_time = txt_to_csv.modification_date()
