@@ -21,7 +21,7 @@ class MongoJsonUpload:
                         'FREQPP2', 'FREQPP3', 'FREQPP4', 'FRQ-C', 'P-FRQ']
         
     def data_loader(self):
-        reader = csv.DictReader(open(self.csv_file, 'r'), quoting=csv.QUOTE_NONNUMERIC)
+        reader = csv.DictReader(open(self.csv_file, 'r'))
         for line in reader:
             mongo_upload = {}            
             for field in self.headers:
@@ -41,7 +41,7 @@ class MongoJsonUpload:
         else:
             stat = os.stat(self.csv_file)
             return stat.st_mtime
-        
+
 
 if __name__ == '__main__':
     json_loader = MongoJsonUpload()
