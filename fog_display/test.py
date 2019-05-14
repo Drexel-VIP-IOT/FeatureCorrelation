@@ -1,95 +1,76 @@
+#!/usr/bin/python3
 # By Rakeen Rouf
-import pandas as pd
+import matplotlib
 import matplotlib.pyplot as plt
 import math
-import numpy as np
-from scipy.spatial import distance
+import time
 import matplotlib.animation as animation
-import os
+import pandas as pd
 
 
-class CloudDataPlotter:
-
+class FogDataPlotter:
     def __init__(self):
-        self.data = pd.DataFrame()
         self.fig_iter_num = 0
-        self.k = 15
-        self.b=0
+        self.v = 0
+        self.iv = 0
+        matplotlib.use('QT5Agg')
 
     def update_data(self, curr, ax1, ax2, ax3, ax4):
+        start = time.time()
+        dataa = pd.read_csv('fog_plot_data.txt')
+        time_data = dataa['SSSSSSSS.mmmuuun']
 
-        self.fig_iter_num = curr
-        try:
+        self.fig_iter_num = curr  # updates figure number
 
-            data = pd.read_csv('fog_plot_data.txt')
-            print(data.shape[0])
-            print(self.k)
+        for ax in (ax1, ax2, ax3, ax4):  # Lets Clear the plot for the animation
+            ax.clear()
 
-            if self.k < data.shape[0]:
-                self.k = data.shape[0]
-                msd = np.empty(data.shape[0])
-                time_data = data['SSSSSSSS.mmmuuun']
-                cum_sum_data = data['cum_sum_ENER']
-                dur_data = data['DURATION']
-                amp_data = data['AMP']
-                Data = data.drop(['SSSSSSSS.mmmuuun'], axis=1).values
+        try:  # Lets try to update our animation
+            ax1.scatter(dataa['DURATION'], dataa['RISE'], color='b', edgecolor='k')
+            ax1.set_ylabel('Rise/μs', weight='bold', fontsize=12)
+            ax1.set_xlabel('Duration/μs', weight='bold', fontsize=12)
 
-                v = np.mean(Data[0:14, :], axis=0)
-                COV = np.cov(Data, rowvar=False)
-                COV[np.isnan(COV)]=0
-                iv = np.linalg.pinv(COV)
+            ax4.plot(time_data, dataa['ABS-ENERGY'].cumsum(), 'b', linewidth=2)
+            ax4.set_ylabel('Cumilative Energy/aJ', weight='bold', fontsize=12)
+            ax4.set_xlabel('Time/s', weight='bold', fontsize=12)
 
-                for x in range(1, data.shape[0]):
-                    msd[x] = distance.mahalanobis(Data[x, :], v, iv)
-                cmsd = np.cumsum(msd)
+            dur_data = dataa['DURATION']
+            min_dur = int(math.floor(dur_data.min()))
+            max_dur = int(math.floor(dur_data.max()))
 
-                for ax in (ax1, ax2, ax3, ax4):  # Lets Clear the plot for the animation
-                    ax.clear()
+            ax3.hist(dur_data, bins=range(min_dur, max_dur + 100, 100), facecolor='blue', alpha=1,
+                     edgecolor='black', linewidth=.8)
+            ax3.set_xlabel('Duration/μs', weight='bold', fontsize=12)
+            ax3.set_ylabel('Count', weight='bold', fontsize=12)
 
-                    try:  # Lets try to update our animation
+            amp_data = dataa['AMP']
+            min_amp = int(math.floor(amp_data.min()))
+            max_amp = int(math.floor(amp_data.max()))
 
-                        ax3.plot(time_data, cum_sum_data, 'b', linewidth=2)
-                        plt.setp(ax3.xaxis.get_majorticklabels(), rotation=90)
-                        ax3.set_ylabel('Cumulative Energy')
-                        ax3.set_xlabel('Time')
+            ax2.hist(amp_data, bins=range(min_amp, max_amp + 1, 1), facecolor='blue', alpha=1,
+                     edgecolor='black', linewidth=.5)
+            ax2.set_xlabel('Amplitude/db', weight='bold', fontsize=12)
+            ax2.set_ylabel('Count', weight='bold', fontsize=12)
 
+            print(time.time() - start)
 
-                        ax1.plot(time_data,cmsd, 'b', linewidth=2)
-                        plt.setp(ax1.xaxis.get_majorticklabels(), rotation=90)
-                        ax1.set_ylabel('Cumulative Mahalanobis Distance')
-                        ax1.set_xlabel('Time')
-
-
-                        min_dur = int(math.floor(min(dur_data)))
-                        max_dur = int(math.floor(max(dur_data)))
-                        ax4.hist(dur_data, bins=range(min_dur, max_dur + 100, 100), facecolor='blue', alpha=0.5,
-                                 edgecolor='black', linewidth=1.2, normed=True)
-                        ax4.set_xlabel('Duration')
-
-
-                        min_amp = int(math.floor(min(amp_data)))
-                        max_amp = int(math.floor(max(amp_data)))
-                        ax2.hist(amp_data, bins=range(min_amp, max_amp + 1, 1), facecolor='blue', alpha=0.5,
-                                 edgecolor='black', linewidth=1.2, normed=True)
-                        ax2.set_xlabel('Amplitude')
-                        fi = 'livecloud' + str(self.b) + '.png'
-                        self.b=self.b+1
-                        print(fi)
-                        THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
-                        #print(THIS_FOLDER)
-                        file = os.path.join(THIS_FOLDER, fi)
-                    # file=' C:/Users/kwm38/Desktop/FOG/'+fi
-                        plt.savefig(file)
-
-                    except Exception as e:
-                        print(repr(e))
-
-        except pd.io.common.EmptyDataError:
-            df = pd.DataFrame()
+        except Exception as e:
+            print(repr(e))
 
 
 if __name__ == '__main__':
-    data_plotter = CloudDataPlotter()
+    """
+    Assumptions
+    Data is dumped at least after 5 seconds after inception
+    """
+    data_plotter = FogDataPlotter()
+    # data_plotter.loaddata()
+
     fig, ((axx1, axx2), (axx3, axx4)) = plt.subplots(2, 2)
+    fig.suptitle('    Fog View', fontsize=18, weight='bold')
+    fig.text(.485, .5, '.', fontsize='200', color='g')
+    fig.patch.set_facecolor((0.96, 0.968, 0.851))
+
     simulation = animation.FuncAnimation(fig, data_plotter.update_data, repeat=False, fargs=(axx1, axx2, axx3, axx4))
-    plt.show()
+    # plt.tight_layout()
+    # plt.show()
