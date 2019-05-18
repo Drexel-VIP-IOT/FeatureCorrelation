@@ -23,6 +23,7 @@ class TxtToCsv:
         self.line = 0  # For getting new data later on
         self.data_cols = None  # Placeholder
         self.append_count = 0
+        self.fog_append_count = 0
 
     def parse_columns(self):
         """
@@ -67,6 +68,21 @@ class TxtToCsv:
                                'FREQPP2', 'FREQPP3', 'FREQPP4', 'FRQ-C', 'P-FRQ', 'ID', 'SSSSSSSS.mmmuuun', 'RISE',
                                'COUN']]
 
+    def file_writer_logic(self, status_file, data, location, count):
+        status = pd.read_fwf(status_file)['Status'][0]
+        if status == 1:
+            data.to_csv(location)
+            count = 0
+        else:
+            if count != 0:
+                data.to_csv(location, mode='a', header=False)
+            else:
+                data.to_csv(location)
+
+            count = 1
+
+        return count
+
     def loaddata(self):
         self.get_file_data()
         new_data = self.data
@@ -83,18 +99,9 @@ class TxtToCsv:
             plot_data.to_csv(self.dest, mode='a', header=False)
         else:
             plot_data.to_csv(self.dest)
-        
-        mongo_status = pd.read_fwf('ae_mongo_upload_status.txt')['Status'][0]
-        if mongo_status == 1:
-            mongo_data.to_csv(self.mongo_dest)
-            self.append_count = 0
-        else:
-            if self.append_count != 0:
-                mongo_data.to_csv(self.mongo_dest, mode='a', header=False)
-            else:
-                mongo_data.to_csv(self.mongo_dest)
 
-            self.append_count = 1
+        self.file_writer_logic('fog_plot_status.txt', plot_data, self.dest, self.fog_append_count)
+        self.file_writer_logic('ae_mongo_upload_status.txt', mongo_data, self.mongo_dest, self.append_count)
 
     def modification_date(self):
 
