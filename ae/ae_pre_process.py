@@ -22,10 +22,25 @@ class TxtToCsv:
         self.iter = 0
         self.line = 0  # For getting new data later on
         self.data_cols = None  # Placeholder
+        self.append_count = 0
 
+    def parse_columns(self):
+        self.data['ID'], self.data['SSSSSSSS.mmmuuun'] = self.data['ID     SSSSSSSS.mmmuuun'].str.split('    ', 1).str
+        self.data['PARA1'], self.data['RISE'], self.data['COUN'] = self.data['PARA1  RISE  COUN'].str.split('   ', 2).str
+        self.data['RISE'] = self.data['RISE'].str.strip()
+        self.data['COUN'] = self.data['COUN'].str.strip()
+        self.data['SSSSSSSS.mmmuuun'] = self.data['SSSSSSSS.mmmuuun'].astype(str).str.strip()
+    
     def read_txt(self):
         self.data = pd.read_fwf(self.data_file, skiprows=self.skip_rows)
-        self.data = self.data.loc[self.data['ID'] == 1]
+        
+        if self.iter != 0:
+            self.parse_columns()
+        else:
+            self.iter = 1
+        
+        self.data = self.data.loc[self.data['ID'] == '1']
+        self.skip_rows += len(self.data)
 
     def get_file_data(self):
         try:
@@ -39,54 +54,43 @@ class TxtToCsv:
                     break
 
             self.read_txt()
-            self.data_cols = self.data.columns
-            print(self.data_cols)
-            # Extracts the column names
-            #processed_cols = self.raw_columns[0].replace('"', '')
-            #processed_cols = processed_cols.replace('.', '_')
-            #self.processed_cols = processed_cols.split(';')
 
 
         # Lets just keep the data points which have id == 1
 
-        # self.data['ID'], self.data['SSSSSSSS.mmmuuun'] = self.data['ID     SSSSSSSS.mmmuuun'].str.split('    ', 1).str
-        # self.data['PARA1'], self.data['RISE'], self.data['COUN'] = self.data['PARA1  RISE  COUN'].str.split('   ', 2).str
-
-
-
-        # self.data['RISE'] = self.data['RISE'].str.strip()
-        # self.data['COUN'] = self.data['COUN'].str.strip()
-        self.data['SSSSSSSS.mmmuuun'] = self.data['SSSSSSSS.mmmuuun'].astype(str).str.strip()
-
         self.data = self.data[['ENER', 'DURATION', 'AMP', 'A-FRQ', 'RMS', 'ASL', 'PCNTS', 'THR',
                                'R-FRQ', 'I-FRQ', 'SIG STRNGTH', 'ABS-ENERGY', 'FREQPP1',
-                               'FREQPP2', 'FREQPP3', 'FREQPP4', 'FRQ-C', 'P-FRQ', 'ID', 'SSSSSSSS.mmmuuun']]
+                               'FREQPP2', 'FREQPP3', 'FREQPP4', 'FRQ-C', 'P-FRQ', 'ID', 'SSSSSSSS.mmmuuun', 'RISE',
+                               'COUN']]
 
     def loaddata(self):
         self.get_file_data()
+        new_data = self.data
 
-        if self.iter == 0:
-            temp_data = pd.DataFrame(columns=self.data.columns)
-            new_data = self.data
-            self.line += len(self.data) - 1
-            self.iter = 1
-        else:
-            temp_data = pd.read_csv(self.dest)
-            print(self.line)
-            new_data = self.data.iloc[self.line:]
-            self.line += len(new_data) - 1
-
-        self.data = pd.concat([temp_data, new_data], join="inner")
         # self.data = self.data.astype('float')
 
-        plot_data = self.data[['SSSSSSSS.mmmuuun', 'DURATION', 'ENER', 'AMP']]
+        plot_data = new_data[['SSSSSSSS.mmmuuun', 'DURATION', 'ENER', 'AMP', 'ABS-ENERGY', 'RISE', 'COUN']]
 
         mongo_data = new_data[['SSSSSSSS.mmmuuun', 'DURATION', 'ENER', 'AMP', 'A-FRQ', 'RMS', 'ASL',
                                'PCNTS', 'THR', 'R-FRQ', 'I-FRQ', 'SIG STRNGTH', 'ABS-ENERGY', 'FREQPP1',
-                               'FREQPP2', 'FREQPP3', 'FREQPP4']]
+                               'FREQPP2', 'FREQPP3', 'FREQPP4', 'FRQ-C', 'P-FRQ', 'RISE', 'COUN']]
 
-        plot_data.to_csv(self.dest)
-        mongo_data.to_csv(self.mongo_dest)
+        if self.iter != 0:
+            plot_data.to_csv(self.dest, mode='a', header=False)
+        else:
+            plot_data.to_csv(self.dest)
+        
+        mongo_status = pd.read_fwf('dic_mongo_upload_status.txt')['Status'][0]
+        if mongo_status == 1:
+            data.to_csv(self.mongo_dest)
+            self.append_count = 0
+        else:
+            if self.append_count != 0:
+                data.to_csv(self.mongo_dest, mode='a', header=False)
+            else:
+                data.to_csv(self.mongo_dest)
+
+            self.append_count = 1
 
     def modification_date(self):
 
