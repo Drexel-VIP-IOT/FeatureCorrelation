@@ -1,10 +1,10 @@
 #!/usr/bin/python3
 # By Rakeen Rouf
 import sys
+from matplotlib import use
 from PyQt5 import QtWidgets, QtGui, uic
 import matplotlib.pylab as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-import matplotlib
 import matplotlib.animation as animation
 import pandas as pd
 from pymongo import MongoClient
@@ -15,7 +15,7 @@ import numpy as np
 from scipy.spatial import distance
 
 
-matplotlib.use('QT5Agg')
+use('QT5Agg')
 
 
 class FogDataPlotter:
