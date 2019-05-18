@@ -25,13 +25,20 @@ class TxtToCsv:
         self.append_count = 0
 
     def parse_columns(self):
+        """
+        Parses joint columns to a more readable format
+        """
         self.data['ID'], self.data['SSSSSSSS.mmmuuun'] = self.data['ID     SSSSSSSS.mmmuuun'].str.split('    ', 1).str
-        self.data['PARA1'], self.data['RISE'], self.data['COUN'] = self.data['PARA1  RISE  COUN'].str.split('   ', 2).str
+        self.data['PARA1'], self.data['RISE'], self.data['COUN'] = \
+            self.data['PARA1  RISE  COUN'].str.split('   ', 2).str
         self.data['RISE'] = self.data['RISE'].str.strip()
         self.data['COUN'] = self.data['COUN'].str.strip()
         self.data['SSSSSSSS.mmmuuun'] = self.data['SSSSSSSS.mmmuuun'].astype(str).str.strip()
     
     def read_txt(self):
+        """
+        Reads appropriate columns from the ae data text file
+        """
         self.data = pd.read_fwf(self.data_file, skiprows=self.skip_rows)
         
         if self.iter != 0:
@@ -55,9 +62,6 @@ class TxtToCsv:
 
             self.read_txt()
 
-
-        # Lets just keep the data points which have id == 1
-
         self.data = self.data[['ENER', 'DURATION', 'AMP', 'A-FRQ', 'RMS', 'ASL', 'PCNTS', 'THR',
                                'R-FRQ', 'I-FRQ', 'SIG STRNGTH', 'ABS-ENERGY', 'FREQPP1',
                                'FREQPP2', 'FREQPP3', 'FREQPP4', 'FRQ-C', 'P-FRQ', 'ID', 'SSSSSSSS.mmmuuun', 'RISE',
@@ -80,15 +84,15 @@ class TxtToCsv:
         else:
             plot_data.to_csv(self.dest)
         
-        mongo_status = pd.read_fwf('dic_mongo_upload_status.txt')['Status'][0]
+        mongo_status = pd.read_fwf('ae_mongo_upload_status.txt')['Status'][0]
         if mongo_status == 1:
-            data.to_csv(self.mongo_dest)
+            mongo_data.to_csv(self.mongo_dest)
             self.append_count = 0
         else:
             if self.append_count != 0:
-                data.to_csv(self.mongo_dest, mode='a', header=False)
+                mongo_data.to_csv(self.mongo_dest, mode='a', header=False)
             else:
-                data.to_csv(self.mongo_dest)
+                mongo_data.to_csv(self.mongo_dest)
 
             self.append_count = 1
 
