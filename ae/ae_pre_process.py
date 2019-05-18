@@ -68,7 +68,8 @@ class TxtToCsv:
                                'FREQPP2', 'FREQPP3', 'FREQPP4', 'FRQ-C', 'P-FRQ', 'ID', 'SSSSSSSS.mmmuuun', 'RISE',
                                'COUN']]
 
-    def file_writer_logic(self, status_file, data, location, count):
+    @staticmethod
+    def file_writer_logic(status_file, data, location, count):
         status = pd.read_fwf(status_file)['Status'][0]
         if status == 1:
             data.to_csv(location)
