@@ -2,6 +2,8 @@
 # By Rakeen Rouf
 import sys
 from matplotlib import use
+import RPi.GPIO as GPIO  
+use('QT5Agg')
 from PyQt5 import QtWidgets, QtGui, uic
 import matplotlib.pylab as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -15,11 +17,13 @@ import numpy as np
 from scipy.spatial import distance
 
 
-use('QT5Agg')
-
-
 class FogDataPlotter:
-    def __init__(self, mongo_data='fog_plot_data.txt'):
+    def __init__(self, mongo_data='/mnt/nfs/rasp/fog_plot_data.txt'):
+        #  Set up GPIO
+        GPIO.setmode(GPIO.BCM)             # choose BCM or BOARD
+        GPIO.setwarnings(False)  
+        GPIO.setup(24, GPIO.OUT)
+        
         self.fig_iter_num = 0
         self.plt_1 = 0  # Place holder
         self.mongo_data = mongo_data
@@ -89,6 +93,7 @@ class FogDataPlotter:
 
         if self.fig_iter_num == 0:
             msd_data = dataa.drop(['SSSSSSSS.mmmuuun'], axis=1).values
+            msd_data = msd_data.astype('float')
             self.v = np.mean(msd_data[0:14, :], axis=0)
             cov = np.cov(msd_data, rowvar=False)
             cov[np.isnan(cov)] = 0
@@ -105,6 +110,8 @@ class FogDataPlotter:
         return cmsd
 
     def update_plot(self, curr, ax1, ax2, ax3, ax4, win, dataa):
+        GPIO.output(24, 0)  # Lets set the current state to inactive 
+        
         time_data = dataa['SSSSSSSS.mmmuuun']
 
         self.fig_iter_num = curr  # updates figure number
@@ -137,6 +144,8 @@ class FogDataPlotter:
             self.find_limits(time_data, energy, self.min_time, self.min_cum_ener, self.max_time, self.max_cum_ener)
         ax4.set_xlim(self.min_time - 10, self.max_time + 10)
         ax4.set_ylim(self.min_cum_ener - 50, self.max_cum_ener + 50)
+        
+        GPIO.output(24, 1)  # Lets set the current state to active
 
         win.status_bar()
 
