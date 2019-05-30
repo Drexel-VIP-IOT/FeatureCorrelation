@@ -1,4 +1,5 @@
 # By Rakeen Rouf
+import RPi.GPIO as GPIO 
 import pandas as pd
 import os
 import platform
@@ -11,19 +12,22 @@ class TxtToCsv:
     time
     """
 
-    def __init__(self, data_file=r'livedata0.TXT',
-                 destination='fog_plot_data.txt', mongo_dest='mongo_data.txt'):
+    def __init__(self, data_file=r'livedata2',
+                 destination='/mnt/nfsserver/rasp/fog_plot_data.txt', mongo_dest='/mnt/nfsserver/rasp/mongo_data.txt'):
 
         self.dest = destination
         self.mongo_dest = mongo_dest
         self.data = pd.DataFrame()
-        self.data_file = data_file
+        self.data_file = '/mnt/nfsserver/rasp/{}.TXT'.format(data_file)
         self.skip_rows = 0
         self.iter = 0
         self.line = 0  # For getting new data later on
         self.data_cols = None  # Placeholder
         self.append_count = 0
         self.fog_append_count = 0
+        GPIO.setmode(GPIO.BCM)             # choose BCM or BOARD  
+        GPIO.setup(25, GPIO.IN)
+
 
     def parse_columns(self):
         """
@@ -69,8 +73,8 @@ class TxtToCsv:
                                'COUN']]
 
     @staticmethod
-    def file_writer_logic(status_file, data, location, count):
-        status = pd.read_fwf(status_file)['Status'][0]
+    def file_writer_logic(data, location, count):
+        status = GPIO.input(25)
         if status == 1:
             data.to_csv(location)
             count = 0
@@ -101,8 +105,8 @@ class TxtToCsv:
         else:
             plot_data.to_csv(self.dest)
 
-        self.file_writer_logic('fog_plot_status.txt', plot_data, self.dest, self.fog_append_count)
-        self.file_writer_logic('ae_mongo_upload_status.txt', mongo_data, self.mongo_dest, self.append_count)
+        self.fog_append_count = self.file_writer_logic(plot_data, self.dest, self.fog_append_count)
+        self.append_count = self.file_writer_logic(mongo_data, self.mongo_dest, self.append_count)
 
     def modification_date(self):
 

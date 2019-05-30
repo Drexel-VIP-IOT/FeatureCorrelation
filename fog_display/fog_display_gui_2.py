@@ -42,6 +42,8 @@ class FogDataPlotter:
         self.v = 0
         self.iv = 0
         self.msd_cum_sum = 0
+        self.min_amp = 0
+        self.max_amp = 10
 
     def modification_time(self):
         if system() == 'Windows':
@@ -53,9 +55,19 @@ class FogDataPlotter:
     def update_data(self, curr, ax1, ax2, ax3, ax4, win):
         cur_mod_time = self.modification_time()
         if cur_mod_time > self.old_mod_time:
+            # Keeps track of active and inactive states
+            txt_writer = open("fog_plot_status.txt", "w")
+            txt_writer.write('Status\n')
+            txt_writer.write(str(0))
+
             dataa = pd.read_csv(self.mongo_data)
             self.update_plot(curr, ax1, ax2, ax3, ax4, win, dataa)
             self.old_mod_time = cur_mod_time
+
+            # Keeps track of active and inactive states
+            txt_writer = open("fog_plot_status.txt", "w")
+            txt_writer.write('Status\n')
+            txt_writer.write(str(1))
         else:
             pass
 
@@ -92,6 +104,8 @@ class FogDataPlotter:
         msd = np.empty(data_shape[0])
 
         if self.fig_iter_num == 0:
+            dataa = dataa.dropna()
+            dataa = dataa.astype('float', errors='ignore')
             msd_data = dataa.drop(['SSSSSSSS.mmmuuun'], axis=1).values
             msd_data = msd_data.astype('float')
             self.v = np.mean(msd_data[0:14, :], axis=0)
@@ -102,9 +116,12 @@ class FogDataPlotter:
             msd_data = dataa.drop(['SSSSSSSS.mmmuuun'], axis=1).values
 
         for x in range(1, data_shape[0]):
-            msd[x] = distance.mahalanobis(msd_data[x, :], self.v, self.iv)
+            try:
+                msd[x] = distance.mahalanobis(msd_data[x, :], self.v, self.iv)
+            except IndexError:
+                pass
 
-        cmsd = msd + self.msd_cum_sum
+        cmsd = np.cumsum(msd) + self.msd_cum_sum
         self.msd_cum_sum = cmsd[-1]
 
         return cmsd
@@ -114,6 +131,7 @@ class FogDataPlotter:
         
         time_data = dataa['SSSSSSSS.mmmuuun']
 
+        # MHD plot
         self.fig_iter_num = curr  # updates figure number
         cmsd = self.calc_msd(dataa)
         ax2.plot(time_data, cmsd, 'b', linewidth=2)
@@ -122,8 +140,9 @@ class FogDataPlotter:
         self.min_time, self.min_cmsd, self.max_time, self.max_cmsd = \
             self.find_limits(time_data, cmsd, self.min_time, self.min_cmsd, self.max_time, self.max_cmsd)
         ax2.set_xlim(self.min_time - 10, self.max_time + 10)
-        ax2.set_ylim(self.min_cmsd - 50, self.max_cmsd + 50)
+        # ax2.set_ylim(self.min_cmsd - 50, self.max_cmsd + 50)
 
+        # Rise time vs duration plot
         duration = dataa['DURATION']
         rise = dataa['RISE']
         ax1.scatter(duration, rise, color='b', edgecolor='k')
@@ -131,21 +150,36 @@ class FogDataPlotter:
         ax1.set_xlabel('Duration(μs)', weight='bold', fontsize=12)
         self.min_dur, self.min_rise, self.max_dur, self.max_rise = \
             self.find_limits(duration, rise, self.min_dur, self.min_rise, self.max_dur, self.max_rise)
-        ax1.set_xlim(self.min_dur - 100, self.max_dur + 100)
-        ax1.set_ylim(self.min_rise - 100, self.max_rise + 100)
+        ax1.set_xlim(self.min_dur - 20, self.max_dur + 20)
+        # ax1.set_ylim(self.min_rise - 100, self.max_rise + 100)
 
-        energy = dataa['ENER']
+        # cumalative energy vs time plot
+        energy = dataa['ENER'].cumsum()
         energy += self.cum_energy
         self.cum_energy = energy.iloc[-1]
-        ax4.plot(time_data, energy, 'b', linewidth=2)
-        ax4.set_ylabel('Cumilative Energy(aJ)', weight='bold', fontsize=12)
-        ax4.set_xlabel('Time(s)', weight='bold', fontsize=12)
+        ax3.plot(time_data, energy, 'b', linewidth=2)
+        ax3.set_ylabel('Cumilative Energy(aJ)', weight='bold', fontsize=12)
+        ax3.set_xlabel('Time(s)', weight='bold', fontsize=12)
         self.min_time, self.min_cum_ener, self.max_time, self.max_cum_ener = \
             self.find_limits(time_data, energy, self.min_time, self.min_cum_ener, self.max_time, self.max_cum_ener)
+        ax3.set_xlim(self.min_time - 10, self.max_time + 10)
+        # ax3.set_ylim(self.min_cum_ener - 50, self.max_cum_ener + 50)
+
+        # Amplitude vs time plot
+        amp = dataa['AMP']
+        ax4.scatter(time_data, amp, color='b', edgecolor='k')
+        ax4.set_ylabel('Amplitude', weight='bold', fontsize=12)
+        ax4.set_xlabel('Time(s)', weight='bold', fontsize=12)
+        self.min_time, self.min_amp, self.max_time, self.max_amp = \
+            self.find_limits(time_data, amp, self.min_time, self.min_amp, self.max_time, self.max_amp)
         ax4.set_xlim(self.min_time - 10, self.max_time + 10)
+<<<<<<< HEAD
         ax4.set_ylim(self.min_cum_ener - 50, self.max_cum_ener + 50)
         
         GPIO.output(24, 1)  # Lets set the current state to active
+=======
+        # ax4.set_ylim(self.min_amp, self.max_amp)
+>>>>>>> aed3eea3386da8974c346501be4fa6ecce6eafea
 
         win.status_bar()
 
@@ -210,6 +244,11 @@ class MyWindow(QtWidgets.QMainWindow):
 
 
 if __name__ == '__main__':
+    # Lets write a txt file containing all running history
+    txt_file_writer = open("fog_plot_status.txt", "w")
+    txt_file_writer.write('Status\n')
+    txt_file_writer.write(str(1))
+
     # Initializing the figure
     fig, ((axx1, axx2), (axx3, axx4)) = plt.subplots(2, 2)
     fig.patch.set_facecolor((0.96, 0.968, 0.851))
