@@ -173,13 +173,10 @@ class FogDataPlotter:
         self.min_time, self.min_amp, self.max_time, self.max_amp = \
             self.find_limits(time_data, amp, self.min_time, self.min_amp, self.max_time, self.max_amp)
         ax4.set_xlim(self.min_time - 10, self.max_time + 10)
-<<<<<<< HEAD
         ax4.set_ylim(self.min_cum_ener - 50, self.max_cum_ener + 50)
         
         GPIO.output(24, 1)  # Lets set the current state to active
-=======
         # ax4.set_ylim(self.min_amp, self.max_amp)
->>>>>>> aed3eea3386da8974c346501be4fa6ecce6eafea
 
         win.status_bar()
 
